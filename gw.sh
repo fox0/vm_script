@@ -7,12 +7,16 @@ address 192.168.0.1
 netmask 255.255.255.0
 EOF
 ifup enp0s8
-/etc/init.d/networking reload
+#systemctl restart networking
 
 apt-get update
 apt-get upgrade -y
 apt-get install htop net-tools policykit-1 tor netfilter-persistent isc-dhcp-server -y
 
+cat >> /etc/tor/torrc << EOF
+DNSPort 192.168.0.1:53
+EOF
+systemctl restart tor
 systemctl status tor | grep active
 
 iptables -P INPUT DROP
@@ -23,8 +27,11 @@ iptables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 mkdir /etc/iptables/
 iptables-save > /etc/iptables/rules.v4
 
-#/etc/default/isc-dhcp-server
 dpkg-reconfigure isc-dhcp-server
 #/etc/dhcp/dhcpd.conf
+#subnet 192.168.0.0 netmask 255.255.255.0 {
+#  option domain-name-servers 192.168.0.1;
+#  option domain-name "example.net";
+#}
 systemctl restart isc-dhcp-server
 systemctl status isc-dhcp-server | grep active
